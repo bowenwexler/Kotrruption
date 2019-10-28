@@ -1,12 +1,15 @@
 
-import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
-import static org.lwjgl.glfw.GLFW.glfwDestroyWindow;
 import static org.lwjgl.glfw.GLFW.glfwGetTime;
 import static org.lwjgl.glfw.GLFW.glfwWindowShouldClose;
+
+import org.lwjgl.glfw.GLFW;
+import org.lwjgl.glfw.GLFWMouseButtonCallback;
+import org.lwjgl.glfw.GLFWKeyCallback;
+
+
+
 import static org.lwjgl.glfw.GLFW.glfwPollEvents;
-import static org.lwjgl.glfw.GLFW.glfwSetErrorCallback;
 import static org.lwjgl.glfw.GLFW.glfwSwapBuffers;
-import static org.lwjgl.glfw.GLFW.glfwTerminate;
 
 
 
@@ -42,6 +45,30 @@ public abstract class Game {
 
 		}
 		ui.destroy();
+	}
+	
+	// call this function on the game that manages gameloop() to catch events in the current scene
+	public void registerGlobalCallbacks()
+	{
+		GLFW.glfwSetMouseButtonCallback(Game.ui.getWindow(), 
+				new GLFWMouseButtonCallback()
+				{
+					public void invoke(long window, int button, int action, int mods)
+					{
+						currScene.onMouseEvent(button,  action,  mods);
+					}
+				});
+
+		GLFW.glfwSetKeyCallback(Game.ui.getWindow(),
+				new GLFWKeyCallback()
+				{
+					public void invoke(long window, int key, int scancode, int action, int mods)
+					{
+						currScene.onKeyEvent(key, scancode, action, mods);
+					}
+				});
+				
+		
 	}
 
 }

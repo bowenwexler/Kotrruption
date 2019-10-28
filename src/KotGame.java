@@ -1,5 +1,7 @@
 import java.util.Random;
+import org.lwjgl.opengl.GL11;
 
+import java.awt.*;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.glClear;
@@ -8,6 +10,7 @@ import static org.lwjgl.opengl.GL11.glClearColor;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import static org.lwjgl.opengl.GL11.*;
 
 public class KotGame extends Game implements Scene 
 {
@@ -15,6 +18,15 @@ public class KotGame extends Game implements Scene
 	{
 		// construct a DemoGame object and launch the game loop
 		KotGame game = new KotGame();
+		game.registerGlobalCallbacks();
+
+		SimpleMenu menu = new SimpleMenu();
+		
+		menu.addItem(new SimpleMenu.SelectableText(240, 400, 20, 20, "Launch Game", 1, 0, 0, 1, 1, 1), game);
+		menu.addItem(new SimpleMenu.SelectableText(240, 360, 20, 20, "Exit", 1, 0, 0, 1, 1, 1), null);
+		menu.select(0);
+
+		game.setScene(menu);
 		game.gameLoop();
 	}
 	
@@ -46,12 +58,68 @@ public class KotGame extends Game implements Scene
 		badBullets = new java.util.LinkedList<>();
 		backgrounds = new java.util.LinkedList<>();
 		backgrounds.add(new Background (900, 1600, 0, 0,-1600));
+		backgrounds.add(new Background (900, 1600, 0, 1599,-1600));
 		player = new Player();
 		
 		//humanoid.play();
 		//humanoid.setLoop(true);
 	}
 	
+	private enum colorStates {TO_WHITE, TO_RED, TO_GREEN, TO_BLUE};
+
+    private class ColorChangeText extends Text
+    {
+        colorStates color = colorStates.TO_RED;
+        private boolean reddening = false;
+        public ColorChangeText(int x, int y, int w, int h, String text){
+            super(x,y,w,h, text);
+        }
+
+        public void update(int delta){
+            float rate = 0.2f;
+            switch (color){
+                case TO_WHITE:
+                    if (this.r >= 0.9 && this.g >= 0.9 && this.b >= 0.9){
+                        this.color = colorStates.TO_RED;
+                    }
+                    else {
+                        this.r += (delta*rate)/255f;
+                        this.g += (delta*rate)/255f;
+                    }
+                    break;
+                case TO_RED:
+                    if (this.r >= 0.9 && this.g <= 0.1 && this.b <= 0.1){
+                        this.color = colorStates.TO_GREEN;
+                    }
+                    else {
+                        this.b -= (delta*rate)/255f;
+                        this.g -= (delta*rate)/255f;
+                    }
+                    break;
+                case TO_GREEN:
+                    if (this.g >= 0.9 && this.r <= 0.1 && this.b <= 0.1){
+                        this.color = colorStates.TO_BLUE;
+                    }
+                    else {
+                        this.r -= (delta*rate)/255f;
+                        this.g += (delta*rate)/255f;
+                    }
+                    break;
+                case TO_BLUE:
+                    if (this.b >= 0.9 && this.r <= 0.1 && this.g <= 0.1){
+                        this.color = colorStates.TO_WHITE;
+                    }
+                    else {
+                        this.b += (delta*rate)/255f;
+                        this.g -= (delta*rate)/255f;
+                    }
+                    break;
+                default:
+                    color = colorStates.TO_WHITE;
+                    break;
+            }
+        }
+    }
 	
 	public void spawnTargets(int count)
 	{
@@ -69,8 +137,6 @@ public class KotGame extends Game implements Scene
 	public Scene drawFrame(int delta)
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
-		
-		
 		
 		if (targets.isEmpty())
 		{
@@ -128,7 +194,10 @@ public class KotGame extends Game implements Scene
 			bg2.draw();
 		}
 		
-		player.update(delta);
+		if (player.isActive())
+		{
+			player.update(delta);
+		}
 		
 		for (GameObject t : targets)
 		{
@@ -168,19 +237,14 @@ public class KotGame extends Game implements Scene
 	
 	private class Background extends GameObject
 	{
-		private Texture bg = new Texture("res/BGStarfield.png");
+		private Texture bg = new Texture("res/BGStarfield.png",1f);
 		private int breakPoint;
-		private int startX;
-		private int startY;
-		private boolean spawn = true;
 		
 		public Background(int width, int height, int x, int y, int bp)
 		{
 			this.hitbox.setSize(width,height);
 			this.hitbox.setLocation(x, y);
 			breakPoint = bp;
-			startX = x;
-			startY = y;
 		}
 		
 		public void draw()
@@ -190,20 +254,14 @@ public class KotGame extends Game implements Scene
 		
 		public void update(int delta)
 		{
-			if (spawn)
-			{
-				backgrounds.add(new Background(900,1601,0,1599,-1600));
-				spawn = false;
-			}
-			System.out.println("help");
+			
 			if (this.hitbox.y < breakPoint)
 			{
-				this.hitbox.setLocation(startX,startY);
-				this.deactivate();
+				this.hitbox.setLocation(0,1550);
 			}
 			else
 			{
-				this.hitbox.translate(0, -5);
+				this.hitbox.translate(0, -4);
 			}
 		}
 	}
@@ -220,7 +278,7 @@ public class KotGame extends Game implements Scene
 		{
 			if (texture==null)
 			{
-				texture = new Texture("res/kotblini.png");
+				texture = new Texture("res/kotblini.png",1f);
 			}
 			this.player = p;
 			this.hitbox.setSize(size, size);
@@ -248,7 +306,7 @@ public class KotGame extends Game implements Scene
 					this.deactivate();
 					b.deactivate();
 				}
-				if (b.getY() < 0)
+				if (b.getHitbox().y < 0)
 				{
 					b.deactivate();
 				}
@@ -267,8 +325,8 @@ public class KotGame extends Game implements Scene
 		public Bullet(Player p)
 		{
 			this.hitbox.setSize(5, 5);
-			this.hitbox.setLocation(p.hitbox.x,p.hitbox.y);
-			this.setColor(0,0,0);
+			this.hitbox.setLocation(p.getHitbox().x,p.getHitbox().y);
+			this.setColor(1,1,0,1);
 		}
 		
 		public void update(int delta)
@@ -283,8 +341,8 @@ public class KotGame extends Game implements Scene
 		public EnemyBullet(Target t)
 		{
 			this.hitbox.setSize(5, 5);
-			this.hitbox.setLocation((int)t.getX(),(int)t.getY());
-			this.setColor(0,1,0);
+			this.hitbox.setLocation(t.getHitbox().x,t.getHitbox().y);
+			this.setColor(0,1,0,1);
 		}
 		
 		public void update(int delta)
@@ -297,12 +355,11 @@ public class KotGame extends Game implements Scene
 	
 	private class Player extends GameObject
 	{	
-		
 		public Player()
 		{
 			this.hitbox.setSize(30, 30);
 			this.hitbox.setLocation(Game.ui.getWidth()/2-15, Game.ui.getHeight()-45);
-			this.setColor(1,0,0);
+			this.setColor(1,0,0,1);
 		}
 		
 		// this allows you to steer the player object
@@ -321,7 +378,7 @@ public class KotGame extends Game implements Scene
 					this.deactivate();
 					b.deactivate();
 				}
-				if (b.getY() > 650)
+				if (b.getHitbox().y > 800)
 				{
 					b.deactivate();
 				}

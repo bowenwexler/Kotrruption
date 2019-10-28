@@ -14,11 +14,13 @@ public class Texture {
 	private int id;
 	private int imgWidth;
 	private int imgHeight;
+	private float a;
 
-	public Texture(String path)
+	public Texture(String path, float alpha)
 	{
 		try (MemoryStack stack= MemoryStack.stackPush()) 
 		{
+			a = alpha;
 			IntBuffer w = stack.mallocInt(1);
 			IntBuffer h = stack.mallocInt(1);
 			IntBuffer comp = stack.mallocInt(1);
@@ -57,7 +59,7 @@ public class Texture {
 	public void draw(GameObject object)
 	{
 
-    	GL11.glColor3f(1,1,1);
+    	GL11.glColor4f(1,1,1,this.a);
     	GL11.glBindTexture(GL11.GL_TEXTURE_2D,  id);
     	
     	//System.out.println(textureID + " - " + width + " x " + height);
